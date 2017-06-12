@@ -15,9 +15,7 @@ let store = configureStore(initState);
 const render = (Component) => {
   ReactDOM.render(<AppContainer>
       <Provider store={store}>
-        <div className="wrapper">
-          <Component/>
-        </div>
+        <Component/>
       </Provider>
     </AppContainer>,
     document.getElementById('app')

@@ -1,11 +1,17 @@
-let bodyParser = require('body-parser'),
+const bodyParser = require('body-parser'),
   express = require('express'),
   session = require('express-session'),
   cookieParser = require('cookie-parser'),
   MongoStore = require('connect-mongo')(session),
   cors = require('cors'),
   mongoose = require('mongoose'),
-  UserModel = require('./model').UserModel;
+  moment = require('moment'),
+  logger = require('loglevel'),
+  axios = require('axios'),
+  UserModel = require('./model').UserModel,
+  ConfigModel = require('./model').ConfigModel;
+
+logger.setLevel(0);
 
 let uriString = 'mongodb://localhost/diploma';
 
@@ -33,10 +39,13 @@ app.use(bodyParser.json());
 
 app.post('/login', (req, res) => {
   if (!req.body.username || !req.body.password) {
-    res.status(500).json({message: 'something missing'});
+    res.status(500).json({message: 'Щось пішло не так'});
     return;
   }
-  let user = UserModel.findOne({username: req.body.username}, (err, user) => {
+  UserModel.findOne({username: req.body.username}, (err, user) => {
+    if (err) {
+      throw err;
+    }
     if (user) {
       user.comparePassword(req.body.password, (err, isMatch) => {
         if (err) {
@@ -45,13 +54,13 @@ app.post('/login', (req, res) => {
         if (isMatch) {
           req.session.authorized = true;
           req.session.user_id = user._id;
-          res.json({message: 'login successful'});
+          res.json({message: 'Успішно', user: {username: user.username, created_at: user.created_at}});
         } else {
-          res.status(500).json({message: 'bad login'});
+          res.status(500).json({message: 'Помилка'});
         }
       });
     } else {
-      res.status(404).json({message: 'no user'});
+      res.status(404).json({message: 'Користувач не знайдений'});
     }
   });
 });
@@ -65,51 +74,75 @@ app.get('/profile', (req, res) => {
       if (user) {
         res.json({username: user.username});
       } else {
-        res.status(404).json({message: 'not found'});
+        res.status(404).json({message: 'Користувач не знайдений'});
       }
     });
   } else {
-    res.status(500).json({message: 'login first'});
+    res.status(500).json({message: 'Доступ заборонено'});
   }
 });
 
 app.post('/profile', (req, res) => {
   if (req.session.authorized) {
+    if (!req.body.username) {
+      res.json({message: 'nothing to change'});
+      return;
+    }
     UserModel.findOne({_id: req.session.user_id}, (err, user) => {
       if (err) {
         throw err;
       }
       if (user) {
-        user.username = req.body.username;
-        user.save(function(err) {
+        UserModel.findOne({username: req.body.username}, (err, new_user) => {
           if (err) {
             throw err;
           }
-          res.json({message: 'change profile successful'});
+          if (new_user) {
+            res.status(500).json({message: 'Вже існує'});
+          } else {
+            user.username = req.body.username;
+            user.updated_at = moment().valueOf();
+            user.save(function(err) {
+              if (err) {
+                throw err;
+              }
+              res.json({message: 'Успішно'});
+            });
+          }
         });
       } else {
-        res.status(404).json({message: 'not found'});
+        res.status(404).json({message: 'Користувач не знайдений'});
       }
     })
   } else {
-    res.status(500).json({message: 'login first'});
+    res.status(500).json({message: 'Доступ заборонено'});
   }
 });
 
-app.post('/register', (req, res) => {
+app.post('/registration', (req, res) => {
   if (!req.body.username || !req.body.password) {
-    res.status(500).json({message: 'something missing'});
+    res.status(500).json({message: 'Щось пішло не так'});
     return;
   }
-  let user = new UserModel({
-    username: req.body.username,
-    password: req.body.password
-  });
-  user.save(function(err) {
+  UserModel.findOne({username: req.body.username}, (err, user) => {
     if (err) {
       throw err;
     }
-    res.json({message: 'register successful'});
+    if (user) {
+      res.status(500).json({message: 'Вже існує'});
+    } else {
+      user = new UserModel({
+        username: req.body.username,
+        password: req.body.password,
+        created_at: moment().valueOf()
+      });
+      user.save(function(err) {
+        if (err) {
+          throw err;
+        }
+        res.json({message: 'Успішно'});
+      });
+    }
   });
 });
 
@@ -118,11 +151,72 @@ app.post('/logout', (req, res) => {
   res.json({message: 'Good bye'});
 });
 
-app.post('/translate', (req, res) => {
+app.get('/config', (req, res) => {
   if (req.session.authorized) {
+    ConfigModel.findOne({user_id: req.session.user_id}, (err, config) => {
+      if (err) {
+        throw err;
+      }
+      if (config) {
+        res.json({translate_type: config.translate_type});
+      } else {
+        res.status(404).json({message: 'Щось пішло не так'});
+      }
+    });
+  } else {
+    res.status(500).json({message: 'Доступ заборонено'});
+  }
+});
+
+app.post('/config', (req, res) => {
+  if (req.session.authorized) {
+    if (!req.body.translate_type) {
+      res.status(500).json({message: 'Щось пішло не так'});
+      return;
+    }
+    ConfigModel.findOne({user_id: req.session.user_id}, (err, config) => {
+      if (err) {
+        throw err;
+      }
+      if (config) {
+        config.translate_type = req.body.translate_type;
+        config.save(function (err) {
+          if (err) {
+            throw err;
+          }
+          res.json({message: 'Успішно'});
+        });
+      } else {
+        config = new ConfigModel({
+          translate_type: req.body.translate_type
+        });
+        config.save(function (err) {
+          if (err) {
+            throw err;
+          }
+          res.json({message: 'Успішно'});
+        });
+      }
+    });
+  }
+});
+
+app.post('/translate', (req, res) => {
+  if (req.session.authorized && req.body.text) {
+    axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
+      source: 'en',
+      target: 'ukr',
+      format: 'text',
+      q: req.body.text
+    })
+      .then((response) => {
+        res.json({message: 'Успішно', text: response.data.data.translations[0].translatedText})
+      }, (error) => {
+        res.status(500).json({message: 'Щось пішло не так', error: error.response.data});
+      })
 
   } else {
-    res.status(500).json({message: 'Login first'});
+    res.status(500).json({message: 'Доступ заборонено'});
   }
 });
 

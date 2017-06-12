@@ -12,8 +12,20 @@ const authorized = (state=false, action) => {
   }
 };
 
+const user = (state={}, action) => {
+  switch (action.type) {
+    case 'SET_USER':
+      return action.user;
+    case 'RESET_USER':
+      return {};
+    default:
+      return state;
+  }
+};
+
 const reducers = combineReducers({
   authorized,
+  user,
   form: formReducer,
 });
 
