@@ -55,3 +55,12 @@ export const setConfig = () => (dispatch, getState) => {
   config.translation_type = parseInt(config.translation_type, 10);
   return api.post('/config', config);
 };
+
+export const translate = () => (dispatch, getState) => {
+  let form = getState().form.translate.values;
+  return api.post('/translate', form)
+    .then((response) => dispatch({type: 'SET_RESULT', text: response.data.text}),
+      (error) => {
+        throw error.response.data.message;
+      })
+};

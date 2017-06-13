@@ -72,6 +72,38 @@ body {
   }
 }
 
+.nav-second {
+  height: 50px;
+  width: 100%;
+  margin: 40px auto 0;
+  padding: 0 50px;
+  box-sizing: border-box;
+  background-color: #bababa;
+  border-bottom: 1px solid #9c9c9c;
+  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  border-radius: 15px;
+}
+
+.nav-second-elem {
+  font-size: 18px;
+  display: inline-block;
+  text-decoration: none;
+  padding: 15px 0;
+  margin: 0 20px;
+  color: #484848;
+}
+
+.left-side {
+  width: 49%;
+  float: left;
+}
+
+.right-side {
+  width: 49%;
+  float: right;
+  margin: 50px 0;
+}
+
 .form {
   width: 500px;
   margin: 50px auto;
@@ -83,16 +115,32 @@ body {
   box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 
+.small-form {
+  width: 100%;
+  min-width: 350px;
+  margin: 50px auto;
+  box-sizing: border-box;
+  padding: 30px 0;
+  border-radius: 20px;
+  background-color: #bababa;
+  border: 1px solid #9c9c9c;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+
+  @media screen and (min-width: 1260px) {
+    width: 80%;
+  }
+}
+
 .form-item {
   width: 75%;
   text-align: center;
-  box-sizing: border-box;
-  margin: 15px 50px;
+  margin: 15px auto;
 }
 
 .form-label {
   float: left;
   width: 30%;
+  color: #484848;
 }
 
 .form-input {
@@ -144,6 +192,23 @@ body {
   float: left;
 }
 
+.textarea-result {
+  width: 80%;
+  display: block;
+  height: 506px;
+  margin: 50px auto;
+  padding: 20px;
+  outline: none;
+  resize: none;
+  border: none;
+  font-size: 18px;
+  color: #484848;
+}
+
+.result-container {
+  padding-top: 1px;
+}
+
 .banner {
   width: 80%;
   border-radius: 20px;
@@ -175,4 +240,21 @@ body {
   border-radius: 8px;
   background-color: #dedede;
   cursor: pointer;
+}
+
+.small-button {
+  width: 100px;
+  height: 30px;
+  text-align: center;
+  text-decoration: none;
+  color: #000000;
+  display: block;
+  margin: 30px auto 0;
+  border-radius: 8px;
+  background-color: #dedede;
+  cursor: pointer;
+
+  @media screen and (min-width: 920px) {
+    width: 200px;
+  }
 }

@@ -8,6 +8,7 @@ const bodyParser = require('body-parser'),
   moment = require('moment'),
   logger = require('loglevel'),
   axios = require('axios'),
+  lodash = require('lodash'),
   UserModel = require('./model').UserModel,
   ConfigModel = require('./model').ConfigModel;
 
@@ -153,7 +154,7 @@ app.post('/registration', (req, res) => {
         }
         let config = new ConfigModel({
           user_id: user._id,
-          translation_type: 1
+          translation_type: 0
         });
         config.save(function(err) {
           if (err) {
@@ -227,15 +228,41 @@ app.post('/config', (req, res) => {
 
 app.post('/translate', (req, res) => {
   console.log('translate');
-  if (req.session.authorized && req.body.text) {
+  if (req.session.authorized && req.body.text && req.body.translation_type) {
+    let words = req.body.text.match(/("([a-zA-z]|\.| )+")/g);
+    let textToTranslate = req.body.text;
+    lodash.forEach(words, (word) => req.body.text = req.body.text.replace(word, '""'));
+    switch (req.body.translation_type) {
+      case '1':
+        textToTranslate = req.body.text;
+        break;
+      case '2':
+        textToTranslate = words.join(',');
+        break;
+      default:
+        break;
+    }
     axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
       source: 'en',
       target: 'ukr',
       format: 'text',
-      q: req.body.text
+      q: textToTranslate
     })
       .then((response) => {
-        res.json({message: 'Успішно', text: response.data.data.translations[0].translatedText})
+      let text = response.data.data.translations[0].translatedText;
+      console.log(text);
+      switch(req.body.translation_type) {
+        case '1':
+          lodash.forEach(words, (word) => text = text.replace(/(""|«»)/, word));
+          break;
+        case '2':
+          lodash.forEach(text.split(','), (word) => req.body.text = req.body.text.replace(/(""|«»)/, word));
+          text = req.body.text;
+          break;
+        default:
+          break;
+      }
+        res.json({message: 'Успішно', text})
       }, (error) => {
         res.status(500).json({message: 'Щось пішло не так', error: error.response.data});
       })
