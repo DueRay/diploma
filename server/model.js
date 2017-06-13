@@ -5,7 +5,9 @@ let mongoose = require('mongoose'),
 
 let UserSchema = new Schema({
   username: { type: String, required: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  created_at: { type: Date },
+  updated_at: { type: Date }
 });
 
 let ConfigSchema = new Schema({

@@ -25,11 +25,14 @@ mongoose.connect(uriString, (err) => {
 
 let app = express();
 
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin: 'http://localhost:3000'
+}));
 app.use(cookieParser());
 app.use(session({
   secret: 'diploma work',
-  cookie: { maxAge: 60000 },
+  cookie: { maxAge: 3600000 },
   resave: false,
   saveUninitialized: false,
   store: new MongoStore({mongooseConnection: mongoose.connection})
@@ -38,6 +41,7 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
 app.post('/login', (req, res) => {
+  console.log('login');
   if (!req.body.username || !req.body.password) {
     res.status(500).json({message: 'Щось пішло не так'});
     return;
@@ -66,13 +70,18 @@ app.post('/login', (req, res) => {
 });
 
 app.get('/profile', (req, res) => {
+  console.log('profile GET');
   if (req.session.authorized) {
     UserModel.findOne({_id: req.session.user_id}, (err, user) => {
       if (err) {
         throw err;
       }
       if (user) {
-        res.json({username: user.username});
+        res.json({
+          username: user.username,
+          created_at: user.created_at,
+          updated_at: user.updated_at
+        });
       } else {
         res.status(404).json({message: 'Користувач не знайдений'});
       }
@@ -83,6 +92,7 @@ app.get('/profile', (req, res) => {
 });
 
 app.post('/profile', (req, res) => {
+  console.log('profile POST');
   if (req.session.authorized) {
     if (!req.body.username) {
       res.json({message: 'nothing to change'});
@@ -120,6 +130,7 @@ app.post('/profile', (req, res) => {
 });
 
 app.post('/registration', (req, res) => {
+  console.log('reg');
   if (!req.body.username || !req.body.password) {
     res.status(500).json({message: 'Щось пішло не так'});
     return;
@@ -140,25 +151,36 @@ app.post('/registration', (req, res) => {
         if (err) {
           throw err;
         }
-        res.json({message: 'Успішно'});
+        let config = new ConfigModel({
+          user_id: user._id,
+          translation_type: 1
+        });
+        config.save(function(err) {
+          if (err) {
+            throw err;
+          }
+          res.json({message: 'Успішно'});
+        });
       });
     }
   });
 });
 
 app.post('/logout', (req, res) => {
+  console.log('logout');
   req.session.destroy();
   res.json({message: 'Good bye'});
 });
 
 app.get('/config', (req, res) => {
+  console.log('config GET');
   if (req.session.authorized) {
     ConfigModel.findOne({user_id: req.session.user_id}, (err, config) => {
       if (err) {
         throw err;
       }
       if (config) {
-        res.json({translate_type: config.translate_type});
+        res.json({translation_type: config.translation_type});
       } else {
         res.status(404).json({message: 'Щось пішло не так'});
       }
@@ -169,8 +191,9 @@ app.get('/config', (req, res) => {
 });
 
 app.post('/config', (req, res) => {
+  console.log('config POST');
   if (req.session.authorized) {
-    if (!req.body.translate_type) {
+    if (typeof req.body.translation_type.type === 'number') {
       res.status(500).json({message: 'Щось пішло не так'});
       return;
     }
@@ -179,7 +202,7 @@ app.post('/config', (req, res) => {
         throw err;
       }
       if (config) {
-        config.translate_type = req.body.translate_type;
+        config.translation_type = req.body.translation_type;
         config.save(function (err) {
           if (err) {
             throw err;
@@ -188,7 +211,8 @@ app.post('/config', (req, res) => {
         });
       } else {
         config = new ConfigModel({
-          translate_type: req.body.translate_type
+          user_id: req.session.user_id,
+          translation_type: req.body.translation_type
         });
         config.save(function (err) {
           if (err) {
@@ -202,6 +226,7 @@ app.post('/config', (req, res) => {
 });
 
 app.post('/translate', (req, res) => {
+  console.log('translate');
   if (req.session.authorized && req.body.text) {
     axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
       source: 'en',

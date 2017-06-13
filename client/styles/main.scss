@@ -119,11 +119,29 @@ body {
   color: #ff2121;
 }
 
+.form-title {
+  margin: 10px;
+  text-align: left;
+  font-weight: 600;
+}
+
 .form-input-error {
   margin: 5px 0;
   width: 60%;
   color: #ff2121;
   float: right;
+}
+
+.form-radio {
+  margin: 5px auto;
+}
+
+.form-radio-input {
+  float: left;
+}
+
+.form-radio-label {
+  float: left;
 }
 
 .banner {

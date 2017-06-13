@@ -23,9 +23,21 @@ const user = (state={}, action) => {
   }
 };
 
+const config = (state={}, action) => {
+  switch (action.type) {
+    case 'SET_CONFIG':
+      return action.config;
+    case 'RESET_USER':
+      return {};
+    default:
+      return state;
+  }
+};
+
 const reducers = combineReducers({
   authorized,
   user,
+  config,
   form: formReducer,
 });
 

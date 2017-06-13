@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { AppContainer } from 'react-hot-loader';
 import App from 'components/App';
 import configureStore from './stores';
+import { getProfile } from 'actions';
 
 let initState = {
   authorized: false
@@ -22,7 +23,8 @@ const render = (Component) => {
   );
 };
 
-render(App);
+store.dispatch(getProfile())
+  .then(() => render(App), () => render(App));
 
 if (module.hot) {
   module.hot.accept('./components/App', () => {

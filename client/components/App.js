@@ -5,6 +5,7 @@ import Header from './Header';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Registration from './pages/Registration';
+import Profile from './pages/Profile';
 
 export default class extends React.Component {
   render() {
@@ -14,7 +15,7 @@ export default class extends React.Component {
         <Route component={Header}/>
         <Switch>
           <Route path="/" exact component={Home}/>
-          <PrivateRoute path="/profile" component={Home}/>
+          <PrivateRoute path="/profile" component={Profile}/>
           <PrivateRoute path="/translate" component={Home}/>
           <Route path="/login" component={Login}/>
           <Route path="/registration" component={Registration}/>
