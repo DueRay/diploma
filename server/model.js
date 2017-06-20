@@ -15,6 +15,16 @@ let ConfigSchema = new Schema({
   translation_type: {type: Number, required: true }
 });
 
+let PatternSchema = new Schema({
+  source: { type: String, required: true },
+  target: { type: String, required: true },
+  type: { type: String },
+  part1_from: { type: String, required: true, index: { unique: true } },
+  part2_from: { type: String },
+  part1_to: { type: String, required: true },
+  part2_to: { type: String }
+});
+
 UserSchema.pre('save', function(next) {
   let user = this;
 
@@ -39,5 +49,6 @@ UserSchema.methods.comparePassword = function(candidatePassword, cb) {
 
 module.exports = {
   UserModel: mongoose.model('User', UserSchema),
-  ConfigModel: mongoose.model('Config', ConfigSchema)
+  ConfigModel: mongoose.model('Config', ConfigSchema),
+  PatternModel: mongoose.model('Pattern', PatternSchema)
 };

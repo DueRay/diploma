@@ -143,6 +143,15 @@ body {
   color: #484848;
 }
 
+.form-input-label {
+  float: left;
+  text-align: right;
+  display: block;
+  width: 40%;
+  padding: 0 5px;
+  box-sizing: border-box;
+}
+
 .form-input {
   float: right;
   width: 60%;
@@ -257,4 +266,11 @@ body {
   @media screen and (min-width: 920px) {
     width: 200px;
   }
+}
+
+.file-error {
+  margin: 0 auto;
+  text-align: center;
+  width: 60%;
+  color: #ff2121;
 }

@@ -10,7 +10,9 @@ const bodyParser = require('body-parser'),
   axios = require('axios'),
   lodash = require('lodash'),
   UserModel = require('./model').UserModel,
-  ConfigModel = require('./model').ConfigModel;
+  ConfigModel = require('./model').ConfigModel,
+  PatternModel = require('./model').PatternModel,
+  translationFunction = require('./translation');
 
 logger.setLevel(0);
 
@@ -130,6 +132,28 @@ app.post('/profile', (req, res) => {
   }
 });
 
+app.post('/patterns', (req, res) => {
+  if (req.body.type && req.body.part1_from && req.body.part1_to && req.body.target && req.body.source) {
+    let pat = new PatternModel({
+      type: req.body.type,
+      source: req.body.source,
+      target: req.body.target,
+      part1_from: req.body.part1_from,
+      part1_to: req.body.part1_to,
+      part2_from: req.body.part2_from,
+      part2_to: req.body.part2_to
+    });
+    pat.save(function(err) {
+      if (err) {
+        throw err;
+      }
+      res.json({message: 'pattern successfully added'});
+    })
+  } else {
+    res.status(500).json({message: 'Щось пішло не так'});
+  }
+});
+
 app.post('/registration', (req, res) => {
   console.log('reg');
   if (!req.body.username || !req.body.password) {
@@ -229,19 +253,8 @@ app.post('/config', (req, res) => {
 app.post('/translate', (req, res) => {
   console.log('translate');
   if (req.session.authorized && req.body.text && req.body.translation_type) {
-    let words = req.body.text.match(/("([a-zA-z]|\.| )+")/g);
-    let textToTranslate = req.body.text;
-    lodash.forEach(words, (word) => req.body.text = req.body.text.replace(word, '""'));
-    switch (req.body.translation_type) {
-      case '1':
-        textToTranslate = req.body.text;
-        break;
-      case '2':
-        textToTranslate = words.join(',');
-        break;
-      default:
-        break;
-    }
+    let textToTranslate = translationFunction(req.body.text);
+    console.log(textToTranslate);
     axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
       source: 'en',
       target: 'ukr',
@@ -249,20 +262,8 @@ app.post('/translate', (req, res) => {
       q: textToTranslate
     })
       .then((response) => {
-      let text = response.data.data.translations[0].translatedText;
-      console.log(text);
-      switch(req.body.translation_type) {
-        case '1':
-          lodash.forEach(words, (word) => text = text.replace(/(""|«»)/, word));
-          break;
-        case '2':
-          lodash.forEach(text.split(','), (word) => req.body.text = req.body.text.replace(/(""|«»)/, word));
-          text = req.body.text;
-          break;
-        default:
-          break;
-      }
-        res.json({message: 'Успішно', text})
+        let text = response.data.data.translations[0].translatedText;
+        res.json({message: 'Успішно', text});
       }, (error) => {
         res.status(500).json({message: 'Щось пішло не так', error: error.response.data});
       })

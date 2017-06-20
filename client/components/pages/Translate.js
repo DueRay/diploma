@@ -16,16 +16,21 @@ class Translate extends React.Component {
     this.fileSave = this.fileSave.bind(this);
   }
 
-  fileSave(e) {
-    // if (['doc', 'txt'].includes(e.target.files[0].name.split('.').pop())) {
+  fileSave(e, name) {
+    let format = e.target.files[0].name.split('.').pop();
+    if (e.target.files[0]) {
       let reader = new FileReader();
       reader.onloadend = function () {
-        this.props.dispatch(change('translate', 'text', reader.result))
+        if ((name === 'text' && ['doc', 'txt'].includes(format)) ||
+          (name === 'dictionary' && ['json'].includes(format))) {
+          this.setState(() => ({[`${name}_error`]: null}));
+          this.props.dispatch(change('translate', name, reader.result));
+        } else {
+          this.setState(() => ({[`${name}_error`]: 'Недопустимий формат'}));
+        }
       }.bind(this);
-      if (e.target.files[0]) {
-        reader.readAsText(e.target.files[0])
-      }
-
+      reader.readAsText(e.target.files[0])
+    }
   }
 
   onSubmit() {
@@ -65,9 +70,15 @@ class Translate extends React.Component {
       },
       {
         name: 'text',
-        label: 'Оберіть файл',
+        label: 'Файл для перекладу:',
         component: File,
         validate: [required],
+        fileSave: this.fileSave
+      },
+      {
+        name: 'dictionary',
+        label: 'Файл локалізації:',
+        component: File,
         fileSave: this.fileSave
       }
     ];
@@ -86,6 +97,9 @@ class Translate extends React.Component {
           </div>
           <div className="right-side">
             <Field {...fields[1]}/>
+            {this.state.text_error && <p className="file-error">{this.state.text_error}</p>}
+            <Field {...fields[2]}/>
+            {this.state.dictionary_error && <p className="file-error">{this.state.dictionary_error}</p>}
             <br/>
             {this.props.valid && <button className="small-button">Перекласти</button>}
           </div>
