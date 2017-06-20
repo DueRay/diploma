@@ -43,10 +43,18 @@ app.use(session({
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
+let authCheck = (req, res, next) => {
+  if (req.session.authorized && req.session.user_id) {
+    next();
+  } else {
+    res.status(500).json({message: 'Secret zone!!! Authorization required'});
+  }
+};
+
 app.post('/login', (req, res) => {
   console.log('login');
   if (!req.body.username || !req.body.password) {
-    res.status(500).json({message: 'Щось пішло не так'});
+    res.status(500).json({message: 'Something missing', error_code: 101});
     return;
   }
   UserModel.findOne({username: req.body.username}, (err, user) => {
@@ -61,78 +69,70 @@ app.post('/login', (req, res) => {
         if (isMatch) {
           req.session.authorized = true;
           req.session.user_id = user._id;
-          res.json({message: 'Успішно', user: {username: user.username, created_at: user.created_at}});
+          res.json({username: user.username, created_at: user.created_at});
         } else {
-          res.status(500).json({message: 'Помилка'});
+          res.status(500).json({message: 'Invalid username or password', error_code: 104});
         }
       });
     } else {
-      res.status(404).json({message: 'Користувач не знайдений'});
+      res.status(404).json({message: 'User not found', error_code: 105});
     }
   });
 });
 
-app.get('/profile', (req, res) => {
+app.get('/profile', authCheck, (req, res) => {
   console.log('profile GET');
-  if (req.session.authorized) {
-    UserModel.findOne({_id: req.session.user_id}, (err, user) => {
-      if (err) {
-        throw err;
-      }
-      if (user) {
-        res.json({
-          username: user.username,
-          created_at: user.created_at,
-          updated_at: user.updated_at
-        });
-      } else {
-        res.status(404).json({message: 'Користувач не знайдений'});
-      }
-    });
-  } else {
-    res.status(500).json({message: 'Доступ заборонено'});
-  }
-});
-
-app.post('/profile', (req, res) => {
-  console.log('profile POST');
-  if (req.session.authorized) {
-    if (!req.body.username) {
-      res.json({message: 'nothing to change'});
-      return;
+  UserModel.findOne({_id: req.session.user_id}, (err, user) => {
+    if (err) {
+      throw err;
     }
-    UserModel.findOne({_id: req.session.user_id}, (err, user) => {
-      if (err) {
-        throw err;
-      }
-      if (user) {
-        UserModel.findOne({username: req.body.username}, (err, new_user) => {
-          if (err) {
-            throw err;
-          }
-          if (new_user) {
-            res.status(500).json({message: 'Вже існує'});
-          } else {
-            user.username = req.body.username;
-            user.updated_at = moment().valueOf();
-            user.save(function(err) {
-              if (err) {
-                throw err;
-              }
-              res.json({message: 'Успішно'});
-            });
-          }
-        });
-      } else {
-        res.status(404).json({message: 'Користувач не знайдений'});
-      }
-    })
-  } else {
-    res.status(500).json({message: 'Доступ заборонено'});
-  }
+    if (user) {
+      res.json({
+        username: user.username,
+        created_at: user.created_at,
+        updated_at: user.updated_at
+      });
+    } else {
+      res.status(404).json({message: 'User not found', error_code: 105});
+    }
+  });
 });
 
-app.post('/patterns', (req, res) => {
+app.post('/profile', authCheck, (req, res) => {
+  console.log('profile POST');
+  if (!req.body.username) {
+    res.json({message: 'nothing to change'});
+    return;
+  }
+  UserModel.findOne({_id: req.session.user_id}, (err, user) => {
+    if (err) {
+      throw err;
+    }
+    if (user) {
+      UserModel.findOne({username: req.body.username}, (err, new_user) => {
+        if (err) {
+          throw err;
+        }
+        if (new_user) {
+          res.status(500).json({message: 'Already exist', error_code: 103});
+        } else {
+          user.username = req.body.username;
+          user.updated_at = moment().valueOf();
+          user.save(function(err) {
+            if (err) {
+              throw err;
+            }
+            res.json({message: 'successful'});
+          });
+        }
+      });
+    } else {
+      res.status(404).json({message: 'User not found', error_code: 105});
+    }
+  });
+});
+
+app.post('/patterns', authCheck, (req, res) => {
   if (req.body.type && req.body.part1_from && req.body.part1_to && req.body.target && req.body.source) {
     let pat = new PatternModel({
       type: req.body.type,
@@ -147,17 +147,17 @@ app.post('/patterns', (req, res) => {
       if (err) {
         throw err;
       }
-      res.json({message: 'pattern successfully added'});
+      res.json({message: 'successful'});
     })
   } else {
-    res.status(500).json({message: 'Щось пішло не так'});
+    res.status(500).json({message: 'Something missing', error_code: 101});
   }
 });
 
 app.post('/registration', (req, res) => {
   console.log('reg');
   if (!req.body.username || !req.body.password) {
-    res.status(500).json({message: 'Щось пішло не так'});
+    res.status(500).json({message: 'Internal server error', error_message: 101});
     return;
   }
   UserModel.findOne({username: req.body.username}, (err, user) => {
@@ -165,7 +165,7 @@ app.post('/registration', (req, res) => {
       throw err;
     }
     if (user) {
-      res.status(500).json({message: 'Вже існує'});
+      res.status(500).json({message: 'Already exist', error_code: 103});
     } else {
       user = new UserModel({
         username: req.body.username,
@@ -184,7 +184,7 @@ app.post('/registration', (req, res) => {
           if (err) {
             throw err;
           }
-          res.json({message: 'Успішно'});
+          res.json({message: 'successful'});
         });
       });
     }
@@ -197,62 +197,9 @@ app.post('/logout', (req, res) => {
   res.json({message: 'Good bye'});
 });
 
-app.get('/config', (req, res) => {
-  console.log('config GET');
-  if (req.session.authorized) {
-    ConfigModel.findOne({user_id: req.session.user_id}, (err, config) => {
-      if (err) {
-        throw err;
-      }
-      if (config) {
-        res.json({translation_type: config.translation_type});
-      } else {
-        res.status(404).json({message: 'Щось пішло не так'});
-      }
-    });
-  } else {
-    res.status(500).json({message: 'Доступ заборонено'});
-  }
-});
-
-app.post('/config', (req, res) => {
-  console.log('config POST');
-  if (req.session.authorized) {
-    if (typeof req.body.translation_type.type === 'number') {
-      res.status(500).json({message: 'Щось пішло не так'});
-      return;
-    }
-    ConfigModel.findOne({user_id: req.session.user_id}, (err, config) => {
-      if (err) {
-        throw err;
-      }
-      if (config) {
-        config.translation_type = req.body.translation_type;
-        config.save(function (err) {
-          if (err) {
-            throw err;
-          }
-          res.json({message: 'Успішно'});
-        });
-      } else {
-        config = new ConfigModel({
-          user_id: req.session.user_id,
-          translation_type: req.body.translation_type
-        });
-        config.save(function (err) {
-          if (err) {
-            throw err;
-          }
-          res.json({message: 'Успішно'});
-        });
-      }
-    });
-  }
-});
-
-app.post('/translate', (req, res) => {
+app.post('/translate', authCheck, (req, res) => {
   console.log('translate');
-  if (req.session.authorized && req.body.text && req.body.translation_type) {
+  if (req.body.text) {
     let textToTranslate = translationFunction(req.body.text);
     console.log(textToTranslate);
     axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
@@ -263,14 +210,17 @@ app.post('/translate', (req, res) => {
     })
       .then((response) => {
         let text = response.data.data.translations[0].translatedText;
-        res.json({message: 'Успішно', text});
-      }, (error) => {
-        res.status(500).json({message: 'Щось пішло не так', error: error.response.data});
+        res.json({text});
+      }, () => {
+        res.status(500).json({message: 'Something went wrong. Try again later', error_code: 102});
       })
-
   } else {
-    res.status(500).json({message: 'Доступ заборонено'});
+    res.status(500).json({message: 'Something missing', error_code: 101});
   }
+});
+
+app.use((req, res) => {
+  res.status(404).json({message: 'Not Found'});
 });
 
 app.listen(5000, () => {
