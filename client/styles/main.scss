@@ -94,12 +94,12 @@ body {
 }
 
 .left-side {
-  width: 49%;
+  width: 59%;
   float: left;
 }
 
 .right-side {
-  width: 49%;
+  width: 39%;
   float: right;
   margin: 50px 0;
 }
@@ -273,4 +273,9 @@ body {
   text-align: center;
   width: 60%;
   color: #ff2121;
+}
+
+.translation-text {
+  margin: 20px 10px;
+  color: #484848;
 }

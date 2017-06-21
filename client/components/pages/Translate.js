@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom';
 import { reduxForm, Field, propTypes, change, reset } from 'redux-form';
 import { required } from '../../validators';
 import { translate } from 'actions';
-import Radio from '../render/Radio';
 import File from '../render/File';
 
 class Translate extends React.Component {
@@ -51,24 +50,6 @@ class Translate extends React.Component {
     }
     let fields = [
       {
-        name: 'translation_type',
-        label: 'Тип перекладу',
-        options: [
-          {
-            value: 0,
-            label: 'Перекласти все'
-          }, {
-            value: 1,
-            label: 'Перекласти все, окрім термінів'
-          }, {
-            value: 2,
-            label: 'Перекласти тільки терміни'
-          }
-        ],
-        component: Radio,
-        validate: [required]
-      },
-      {
         name: 'text',
         label: 'Файл для перекладу:',
         component: File,
@@ -91,17 +72,18 @@ class Translate extends React.Component {
         <form className="clearfix" onSubmit={this.props.handleSubmit(this.onSubmit)}>
           <div className="left-side">
             <div className="small-form">
-              <Field {...fields[0]} />
+              <Field {...fields[0]}/>
+              {this.state.text_error && <p className="file-error">{this.state.text_error}</p>}
+              <Field {...fields[1]}/>
+              {this.state.dictionary_error && <p className="file-error">{this.state.dictionary_error}</p>}
+              <br/>
+              {this.props.valid && <button className="small-button">Перекласти</button>}
               {this.state.error_message && <div className="form-error">{this.state.error_message}</div>}
             </div>
           </div>
           <div className="right-side">
-            <Field {...fields[1]}/>
-            {this.state.text_error && <p className="file-error">{this.state.text_error}</p>}
-            <Field {...fields[2]}/>
-            {this.state.dictionary_error && <p className="file-error">{this.state.dictionary_error}</p>}
-            <br/>
-            {this.props.valid && <button className="small-button">Перекласти</button>}
+            <div className="translation-text">Файл для перекладу має бути формату .doc або .txt</div>
+            <div className="translation-text">Файл локалазації має бути формату .json</div>
           </div>
         </form>
       </div>
@@ -116,7 +98,6 @@ Translate.propTypes = {
 };
 
 export default connect((state) => ({
-  initialValues: {...state.config, translation_type: `${state.config.translation_type}`},
   result: state.result
 }))(reduxForm({
   form: 'translate'

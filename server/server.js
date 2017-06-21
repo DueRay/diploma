@@ -225,8 +225,7 @@ app.post('/logout', (req, res) => {
 app.post('/translate', authCheck, (req, res) => {
   console.log('translate');
   if (req.body.text) {
-    let textToTranslate = translationFunction(req.body.text);
-    console.log(textToTranslate);
+    let textToTranslate = translationFunction(req.body.text, JSON.parse(req.body.dictionary));
     axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
       source: 'en',
       target: 'ukr',

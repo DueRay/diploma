@@ -2,10 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { connect } from 'react-redux';
 import { reduxForm, Field, propTypes } from 'redux-form';
-import Radio from '../render/Radio';
+import Input from '../render/Input';
 import { required } from '../../validators';
-import { setConfig, getConfig } from 'actions';
+import { setProfile } from 'actions';
 import moment from 'moment';
+import ChangePassword from '../ChangePassword';
 
 class Profile extends React.Component {
   constructor(props) {
@@ -16,12 +17,11 @@ class Profile extends React.Component {
 
   onSubmit() {
     this.setState(() => ({isFetching: true}));
-    this.props.dispatch(setConfig())
+    this.props.dispatch(setProfile())
       .then(() => {
           this.setState(() => ({isFetching: false}));
-          return this.props.dispatch(getConfig());
         },
-        (error) => this.setState(() => ({isFetching: false, error_message: error.response.data.message}))
+        (error_message) => this.setState(() => ({isFetching: false, error_message}))
       );
   }
 
@@ -31,32 +31,24 @@ class Profile extends React.Component {
     }
     let fields = [
       {
-        name: 'translation_type',
-        label: 'Тип перекладу',
-        options: [
-          {
-            value: 0,
-            label: 'Перекласти все'
-          }, {
-            value: 1,
-            label: 'Перекласти все, окрім слів'
-          }, {
-            value: 2,
-            label: 'Перекласти тільки терміни'
-          }
-        ],
-        component: Radio,
+        name: 'username',
+        type: 'text',
+        label: 'Username',
+        component: Input,
         validate: [required]
       }
     ];
     return(
-      <form className="form" onSubmit={this.props.handleSubmit(this.onSubmit)}>
-        <p>username : {this.props.user.username}</p>
-        <p>Зареєстрований : {moment(this.props.user.created_at).format('DD.MM.YYYY')}</p>
-        {fields.map((field, i) => <Field {...field} key={i}/>)}
-        {this.state.error_message && <div className="form-error">{this.state.error_message}</div>}
-        {this.props.dirty && <button type="submit" className="form-button">Зберегти</button>}
-      </form>
+      <div className="form">
+        <form onSubmit={this.props.handleSubmit(this.onSubmit)}>
+          {fields.map((field, i) => <Field {...field} key={i}/>)}
+          <p>Зареєстрований : {moment(this.props.user.created_at).format('DD.MM.YYYY')}</p>
+          {this.state.error_message && <div className="form-error">{this.state.error_message}</div>}
+          {this.props.dirty && <button type="submit" className="form-button">Зберегти</button>}
+        </form>
+        <hr/>
+        <ChangePassword/>
+      </div>
     );
   }
 }
@@ -69,7 +61,7 @@ Profile.propTypes = {
 
 export default connect((state) => ({
   user: state.user,
-  initialValues: state.config
+  initialValues: state.user
 }))(reduxForm({
-  form: 'config'
+  form: 'profile'
 })(Profile));

@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { reduxForm, Field, propTypes } from 'redux-form';
 import { login } from 'actions';
 import Input from '../render/Input';
-import { required } from '../../validators';
+import { required, password } from '../../validators';
 
 class Login extends React.Component {
   constructor(props) {
@@ -40,7 +40,7 @@ class Login extends React.Component {
         type: 'password',
         label: 'Пароль',
         component: Input,
-        validate: [required]
+        validate: [required, password]
       }
     ];
     return(

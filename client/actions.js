@@ -9,8 +9,7 @@ export const login = (form) => (dispatch, getState) => {
   let user = form || getState().form.login.values;
   return api.post('/login', user)
     .then((response) => {
-      dispatch({type: 'SET_USER', user: response.data.user});
-      return dispatch(getConfig());
+      dispatch({type: 'SET_USER', user: response.data});
     }, (error) => {
       throw error.response.data.message;
     });
@@ -31,29 +30,32 @@ export const register = () => (dispatch, getState) => {
     })
 };
 
-export const getConfig = () => (dispatch) => {
-  return api.get('/config')
-    .then((response) => {
-      dispatch({type: 'SET_CONFIG', config: response.data});
-    }, (error) => {
-      throw error.response.data.message;
-    });
-};
-
 export const getProfile = () => (dispatch) => {
   return api.get('/profile')
     .then((response) => {
       dispatch({type: 'SET_USER', user: response.data});
-      return dispatch(getConfig());
     }, (error) => {
       throw error.response.data.message;
     });
 };
 
-export const setConfig = () => (dispatch, getState) => {
-  let config = getState().form.config.values;
-  config.translation_type = parseInt(config.translation_type, 10);
-  return api.post('/config', config);
+export const setProfile = () => (dispatch, getState) => {
+  let user = getState().form.profile.values;
+  return api.post('/profile', user)
+    .then(() => {
+      return dispatch(getProfile());
+    }, (error) => {
+      throw error.response.data.message;
+    })
+};
+
+export const changePassword = () => (dispatch, getState) => {
+  let form = getState().form.changePassword.values;
+  return api.post('/profile/password', form)
+    .then((response) => response.data,
+      (error) => {
+    throw error.response.data.message;
+      })
 };
 
 export const translate = () => (dispatch, getState) => {
