@@ -42,12 +42,28 @@ app.use(session({
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-let authCheck = (req, res, next) => {
+const authCheck = (req, res, next) => {
   if (req.session.authorized && req.session.user_id) {
     next();
   } else {
     res.status(500).json({message: 'Secret zone!!! Authorization required', error_code: 100});
   }
+};
+
+const googleTranslate = (text, res) => {
+  console.log(text);
+  axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
+    source: 'en',
+    target: 'ukr',
+    format: 'text',
+    q: text
+  })
+    .then((response) => {
+      let text = response.data.data.translations[0].translatedText;
+      res.json({text});
+    }, () => {
+      res.status(500).json({message: 'Something went wrong. Try again later', error_code: 102});
+    })
 };
 
 app.post('/login', (req, res) => {
@@ -225,19 +241,12 @@ app.post('/logout', (req, res) => {
 app.post('/translate', authCheck, (req, res) => {
   console.log('translate');
   if (req.body.text) {
-    let textToTranslate = translationFunction(req.body.text, JSON.parse(req.body.dictionary));
-    axios.post('https://translation.googleapis.com/language/translate/v2?key=AIzaSyBCLIhjQdT5IDkBrICZhCikMzju_zdwJk4',{
-      source: 'en',
-      target: 'ukr',
-      format: 'text',
-      q: textToTranslate
-    })
-      .then((response) => {
-        let text = response.data.data.translations[0].translatedText;
-        res.json({text});
-      }, () => {
-        res.status(500).json({message: 'Something went wrong. Try again later', error_code: 102});
-      })
+    if (req.body.dictionary) {
+      translationFunction(req.body.text, JSON.parse(req.body.dictionary), googleTranslate, res);
+    } else {
+      translationFunction(req.body.text, null, googleTranslate, res);
+    }
+
   } else {
     res.status(500).json({message: 'Something missing', error_code: 101});
   }
