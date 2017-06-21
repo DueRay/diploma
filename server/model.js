@@ -10,11 +10,6 @@ let UserSchema = new Schema({
   updated_at: { type: Date }
 });
 
-let ConfigSchema = new Schema({
-  user_id: { type: String, required: true, index: { unique: true } },
-  translation_type: {type: Number, required: true }
-});
-
 let PatternSchema = new Schema({
   source: { type: String, required: true },
   target: { type: String, required: true },
@@ -25,20 +20,20 @@ let PatternSchema = new Schema({
   part2_to: { type: String }
 });
 
-UserSchema.pre('save', function(next) {
+UserSchema.methods.encrypt = function(new_password, cb) {
   let user = this;
 
   bcrypt.genSalt(SALT_FACTOR, function(err, salt) {
     if (err) return next(err);
 
-    bcrypt.hash(user.password, salt, function(err, hash) {
+    bcrypt.hash(new_password, salt, function(err, hash) {
       if (err) return next(err);
 
       user.password = hash;
-      next();
+      cb();
     });
   });
-});
+};
 
 UserSchema.methods.comparePassword = function(candidatePassword, cb) {
   bcrypt.compare(candidatePassword, this.password, (err, isMatch) => {
@@ -49,6 +44,5 @@ UserSchema.methods.comparePassword = function(candidatePassword, cb) {
 
 module.exports = {
   UserModel: mongoose.model('User', UserSchema),
-  ConfigModel: mongoose.model('Config', ConfigSchema),
   PatternModel: mongoose.model('Pattern', PatternSchema)
 };

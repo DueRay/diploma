@@ -10,7 +10,6 @@ const bodyParser = require('body-parser'),
   axios = require('axios'),
   lodash = require('lodash'),
   UserModel = require('./model').UserModel,
-  ConfigModel = require('./model').ConfigModel,
   PatternModel = require('./model').PatternModel,
   translationFunction = require('./translation');
 
@@ -47,7 +46,7 @@ let authCheck = (req, res, next) => {
   if (req.session.authorized && req.session.user_id) {
     next();
   } else {
-    res.status(500).json({message: 'Secret zone!!! Authorization required'});
+    res.status(500).json({message: 'Secret zone!!! Authorization required', error_code: 100});
   }
 };
 
@@ -132,6 +131,40 @@ app.post('/profile', authCheck, (req, res) => {
   });
 });
 
+app.post('/profile/password', authCheck, (req, res) => {
+  console.log('password POST');
+  if (!req.body.password && !req.body.new_password) {
+    res.stutus(500).json({message: 'Something missing', error_code: 101});
+    return;
+  }
+  UserModel.findOne({_id: req.session.user_id}, (err, user) => {
+    if (err) {
+      throw err;
+    }
+    if (user) {
+      user.comparePassword(req.body.password, (err, isMatch) => {
+        if (err) {
+          throw err;
+        }
+        if (isMatch) {
+          user.encrypt(req.body.new_password, () => {
+            user.save(function (err) {
+              if (err) {
+                throw err;
+              }
+              res.json({message: 'successful'});
+            });
+          });
+        } else {
+          res.status(500).json({message: 'Invalid password', error_code: 104});
+        }
+      });
+    } else {
+      res.status(404).json({message: 'User not found', error_code: 105});
+    }
+  });
+});
+
 app.post('/patterns', authCheck, (req, res) => {
   if (req.body.type && req.body.part1_from && req.body.part1_to && req.body.target && req.body.source) {
     let pat = new PatternModel({
@@ -157,7 +190,7 @@ app.post('/patterns', authCheck, (req, res) => {
 app.post('/registration', (req, res) => {
   console.log('reg');
   if (!req.body.username || !req.body.password) {
-    res.status(500).json({message: 'Internal server error', error_message: 101});
+    res.status(500).json({message: 'Something missing', error_message: 101});
     return;
   }
   UserModel.findOne({username: req.body.username}, (err, user) => {
@@ -169,18 +202,10 @@ app.post('/registration', (req, res) => {
     } else {
       user = new UserModel({
         username: req.body.username,
-        password: req.body.password,
         created_at: moment().valueOf()
       });
-      user.save(function(err) {
-        if (err) {
-          throw err;
-        }
-        let config = new ConfigModel({
-          user_id: user._id,
-          translation_type: 0
-        });
-        config.save(function(err) {
+      user.encrypt(req.body.password, () => {
+        user.save(function(err) {
           if (err) {
             throw err;
           }
